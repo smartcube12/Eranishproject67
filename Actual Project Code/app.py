@@ -19,7 +19,7 @@ dataset = "cifar10"
 #     thread.start()
 
 
-
+#ATTENTION: you might need to change these vars to work work with your machine, this points to very specific things on mine
 WSL_DISTRO = "Ubuntu"          # name from `wsl -l -v`
 WSL_PY = "/home/smart/ERAN/venv/bin/python"             # or "/home/smart/ERAN/venv/bin/python" if that venv exists
 ERAN_WSL_DIR = "/home/smart/ERAN/tf_verify"

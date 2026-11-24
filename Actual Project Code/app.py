@@ -1,6 +1,7 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 import subprocess
+import re
 import sys
 import os
 import threading
@@ -37,6 +38,10 @@ def run_eran(netname, dataset, domain, epsilon, timeout=600, num_tests=10, **ext
 
 #r = run_eran("../nets/mynet.onnx", "mnist", "deepzono", 0.02, mean=0.1307, std=0.3081, num_tests=100)
 
+def clean_output(text):
+    # remove ERAN's printed config dict ({'...': ..., ... })
+    return re.sub(r"^\{'.*?\}[ \t]*\n", "", text, flags=re.S | re.M)
+
 
 def on_button_click(type):
     global hasfile
@@ -47,52 +52,115 @@ def on_button_click(type):
                case "all":
                  print("Running all")
                  #TODO insert threads to run that
+
                case "dz":
                  #ERAN_DIR = os.path.expanduser("~/ERAN/tf_verify")
                  print("Running DeepZono")
                  result = run_eran(model_path, dataset, "deepzono", "0.0002", timeout=180)
                  print(result.stdout)
+                 open_new_window(clean_output(result.stdout))
                  if result.returncode != 0:
                     print(result.stderr)
+                    open_new_window(result.stderr)
 
                case "dp":
                  print("Running DeepPoly")
                  result = run_eran(model_path, dataset, "deeppoly", "0.0002", timeout=180)
                  print(result.stdout)
+                 open_new_window(clean_output(result.stdout))
                  if result.returncode != 0:
                     print(result.stderr)
+                    open_new_window(result.stderr)
 
             #    case "gp":
             #     print("Running GPUPoly")
             #     result = run_eran(model_path, "cifar10", "refinezono", "0.0002", timeout=180)
             #     print(result.stdout)
+            #open_new_window(clean_output(result.stdout))
             #     if result.returncode != 0:
             #         print(result.stderr)
+            #open_new_window(result.stderr)
 
                case "rz":
                    print("Running RefineZono")
                    result = run_eran(model_path, dataset, "refinezono", "0.0002", timeout=180)
                    print(result.stdout)
+                   open_new_window(clean_output(result.stdout))
                    if result.returncode != 0:
                       print(result.stderr)
+                      open_new_window(result.stderr)
 
                case "rp":
                    print("Running RefinePoly")
                    result = run_eran(model_path, dataset, "refinepoly", "0.0002", timeout=180)
                    print(result.stdout)
+                   open_new_window(clean_output(result.stdout))
                    if result.returncode != 0:
                         print(result.stderr)
+                        open_new_window(result.stderr)
 
             #    case "rgp":
             #        print("Running RefineGPUZono")
             #        result = run_eran(model_path, "cifar10", "deeppoly", "0.0002", timeout=180)
             #        print(result.stdout)
+            #open_new_window(clean_output(result.stdout))
             #        if result.returncode != 0:
             #             print(result.stderr)
+            #open_new_window(result.stderr)
                case _:
                  print("Unknown action")
     else:
         fileupload.config(text="Upload a model here before running analysis")
+
+def open_new_window(results):
+    new_win = tk.Toplevel(root)
+    new_win.title("Results")
+    new_win.geometry("900x650")
+
+    canvas = tk.Canvas(new_win, highlightthickness=0)
+    scrollbar = ttk.Scrollbar(new_win, orient="vertical", command=canvas.yview)
+    scrollable_frame = ttk.Frame(canvas)
+
+    # put the label INSIDE the scrollable frame
+    ttk.Label(scrollable_frame, text=results, justify="left").pack(
+        padx=20, pady=20, anchor="w")
+
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    # keep the inner frame as wide as the canvas
+    canvas.bind("<Configure>",
+                lambda e: canvas.itemconfig(window_id, width=e.width))
+
+    def _on_mousewheel(event):
+        if event.num == 4:
+            canvas.yview_scroll(-1, "units")
+        elif event.num == 5:
+            canvas.yview_scroll(1, "units")
+        elif event.delta:
+            canvas.yview_scroll(int(-event.delta / 120) or (-1 if event.delta > 0 else 1),
+                                "units")
+
+    def _bind_wheel(_event=None):
+        new_win.bind_all("<MouseWheel>", _on_mousewheel)
+        new_win.bind_all("<Button-4>", _on_mousewheel)
+        new_win.bind_all("<Button-5>", _on_mousewheel)
+
+    def _unbind_wheel(_event=None):
+        new_win.unbind_all("<MouseWheel>")
+        new_win.unbind_all("<Button-4>")
+        new_win.unbind_all("<Button-5>")
+
+    new_win.bind("<Enter>", _bind_wheel)
+    new_win.bind("<Leave>", _unbind_wheel)
+    new_win.bind("<Destroy>", _unbind_wheel)
+
+    scrollbar.pack(side="right", fill="y")
+    canvas.pack(side="left", fill="both", expand=True)
+
 
 
 def select_dataset():
@@ -129,19 +197,19 @@ def upload_file():
 # 1. Create the main window
 root = tk.Tk()
 root.title("ERAN")
-root.geometry("700x500")
+root.geometry("350x500")
 
 # 2. Add widgets (Label, Text Entry, Button)
 #TODO textbox for verifying model is uploaded
 
 fileupload = tk.Button(root, text="Upload Model as (insert model type extension)", command=upload_file)
-fileupload.pack(padx=30, pady=30)
+fileupload.pack(padx=10, pady=30)
 
 toggledata = tk.Button(root, text="Dataset:cifar10", command=lambda: select_dataset())
 toggledata.pack(pady=10)
 
 runall = tk.Button(root, text="Run All Analyses", command=lambda: on_button_click("all"))
-runall.pack(pady=10)
+runall.pack(pady=20)
 
 deepz = tk.Button(root, text="DeepZono", command=lambda: on_button_click("dz"))
 deepz.pack(pady=10)

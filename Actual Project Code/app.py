@@ -7,7 +7,7 @@ import threading
 
 hasfile = False
 model_path = None
-dataset = None
+dataset = "cifar10"
 # def run_in_thread():
 #  # Start the command in a separate thread so the UI stays responsive
 #     thread = threading.Thread(
@@ -20,7 +20,7 @@ dataset = None
 
 
 WSL_DISTRO = "Ubuntu"          # name from `wsl -l -v`
-WSL_PY = "python3"             # or "/home/smart/ERAN/venv/bin/python" if that venv exists
+WSL_PY = "/home/smart/ERAN/venv/bin/python"             # or "/home/smart/ERAN/venv/bin/python" if that venv exists
 ERAN_WSL_DIR = "/home/smart/ERAN/tf_verify"
 
 def run_eran(netname, dataset, domain, epsilon, timeout=600, num_tests=10, **extra):
@@ -48,34 +48,47 @@ def on_button_click(type):
                  print("Running all")
                  #TODO insert threads to run that
                case "dz":
-                 ERAN_DIR = os.path.expanduser("~/ERAN/tf_verify")
+                 #ERAN_DIR = os.path.expanduser("~/ERAN/tf_verify")
                  print("Running DeepZono")
-                 #result = subprocess.run(["dir"], shell=True, capture_output=True, text=True)
-                 #result = subprocess.run(["python", "your_script.py", "--domain", "deepz"],capture_output=True,text=True)
-                 #result = run_eran(model_path, "mnist", "deepzono", 0.02, mean=0.1307, std=0.3081, num_tests=100)
-                 #run this python3 . --netname ../data/cifar_relu_4_100.onnx --dataset cifar10 --domain deeppoly --epsilon 0.002 --num_tests 10
-                 #result = subprocess.run(["python3 . --netname ../data/cifar_relu_4_100.onnx --dataset cifar10 --domain deeppoly --epsilon 0.002 --num_tests 10"],capture_output=True,text=True)
-                 #result = run_eran(model_path, dataset, domain, epsilon, timeout=600, **extra)
-                 result = run_eran(model_path, "cifar10", "deeppoly", "0.002", timeout=180)
+                 result = run_eran(model_path, dataset, "deepzono", "0.0002", timeout=180)
                  print(result.stdout)
                  if result.returncode != 0:
                     print(result.stderr)
 
                case "dp":
                  print("Running DeepPoly")
-                 #TODO insert threads to run that
-               case "gp":
-                   print("Running GPUPoly")
-                   #TODO insert threads to run that
+                 result = run_eran(model_path, dataset, "deeppoly", "0.0002", timeout=180)
+                 print(result.stdout)
+                 if result.returncode != 0:
+                    print(result.stderr)
+
+            #    case "gp":
+            #     print("Running GPUPoly")
+            #     result = run_eran(model_path, "cifar10", "refinezono", "0.0002", timeout=180)
+            #     print(result.stdout)
+            #     if result.returncode != 0:
+            #         print(result.stderr)
+
                case "rz":
                    print("Running RefineZono")
-                   #TODO insert threads to run that
+                   result = run_eran(model_path, dataset, "refinezono", "0.0002", timeout=180)
+                   print(result.stdout)
+                   if result.returncode != 0:
+                      print(result.stderr)
+
                case "rp":
                    print("Running RefinePoly")
-                   #TODO insert threads to run that
-               case "rgp":
-                   print("Running RefineGPUZono")
-                   #TODO insert threads to run that
+                   result = run_eran(model_path, dataset, "refinepoly", "0.0002", timeout=180)
+                   print(result.stdout)
+                   if result.returncode != 0:
+                        print(result.stderr)
+
+            #    case "rgp":
+            #        print("Running RefineGPUZono")
+            #        result = run_eran(model_path, "cifar10", "deeppoly", "0.0002", timeout=180)
+            #        print(result.stdout)
+            #        if result.returncode != 0:
+            #             print(result.stderr)
                case _:
                  print("Unknown action")
     else:
@@ -84,6 +97,14 @@ def on_button_click(type):
 
 def select_dataset():
     global dataset
+    if (dataset == "cifar10"):
+        dataset = "mnist"
+        toggledata.config(text="Dataset:mnist")
+    else:
+        dataset = "cifar10"
+        toggledata.config(text="Dataset:cifar10")
+    
+
   
 
 def upload_file():
@@ -108,7 +129,7 @@ def upload_file():
 # 1. Create the main window
 root = tk.Tk()
 root.title("ERAN")
-root.geometry("700x450")
+root.geometry("700x500")
 
 # 2. Add widgets (Label, Text Entry, Button)
 #TODO textbox for verifying model is uploaded
@@ -116,10 +137,13 @@ root.geometry("700x450")
 fileupload = tk.Button(root, text="Upload Model as (insert model type extension)", command=upload_file)
 fileupload.pack(padx=30, pady=30)
 
+toggledata = tk.Button(root, text="Dataset:cifar10", command=lambda: select_dataset())
+toggledata.pack(pady=10)
+
 runall = tk.Button(root, text="Run All Analyses", command=lambda: on_button_click("all"))
 runall.pack(pady=10)
 
-deepz = tk.Button(root, text="DEEP Z", command=lambda: on_button_click("dz"))
+deepz = tk.Button(root, text="DeepZono", command=lambda: on_button_click("dz"))
 deepz.pack(pady=10)
 
 deeppoly = tk.Button(root, text="DeepPoly", command=lambda: on_button_click("dp"))
